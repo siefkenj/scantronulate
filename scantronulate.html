@@ -1,0 +1,80 @@
+<html>
+<head>
+	<title>Scantronulate</title>
+	<!-- jQuery includes -->
+	<script type="text/javascript" src="jquery/js/jquery-1.7.2.js"></script>
+	<script type="text/javascript" src="jquery/js/jquery-ui-1.8.18.custom.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="jquery/css/redmond/jquery-ui-1.8.18.custom.css" />
+	<script type="text/javascript" src="jquery/js/jquery.dataTables.js"></script>
+	<link rel="stylesheet" type="text/css" href="jquery/css/jquery.dataTables.css" />
+
+	<!-- jsPDF includes -->
+	<script type="text/javascript" src="jsPDF/libs/base64.js"></script>
+	<script type="text/javascript" src="jsPDF/libs/sprintf.js"></script>
+	<script type="text/javascript" src="jsPDF/jspdf.js"></script>
+
+	<!-- scantronulate includes -->
+	<link rel="stylesheet" type="text/css" href="css/dndimg.css" />
+	<link rel="stylesheet" type="text/css" href="css/interface.css" />
+	<script type="text/javascript" src="js/csvparse.js"></script>
+	<script type="text/javascript" src="js/scantronLib.js"></script>
+	<script type="text/javascript" src="js/canvasPdf.js"></script>
+	<script type="text/javascript" src="js/interface.js"></script>
+</head>
+<body>
+<div id="tabs">
+<ul>
+	<li><a href="#tab-importData">Import Data</a></li>
+	<li><a href="#tab-preview">Preview</a></li>
+	<li><a href="#tab-export">Export</a></li>
+	<li><a href="#tab-settings">Settings</a></li>
+	<li><a href="#tab-help">Help</a></li>
+</ul>
+<div id="tab-importData">
+	<div id="dropbox"><span id="droplabel">Drop CSV File</span></div>
+	<div id="importDialog" title="Import Settings">
+		<p>Select which columns are relevant for importing</p>
+		<table id="table-importSettings">
+			<thead>
+				<tr></tr>
+			</thead>
+			<tbody />
+		</table>
+		<p>
+			Start from row: <input type="text" id="fromRow-importSettings" value='0' style="width: 2em"/>
+		</p>
+	</div>
+</div>
+<div id="tab-preview">
+	<div id="container">
+		<div id="studentList">
+			<!-- <table cellpadding="0" cellspacing="0" border="0" class="studentList" id="studentListTable">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Name</th>
+						<th>Class</th>
+						<th>Section</th>
+					</tr>
+				</thead>
+			</table> -->
+		</div>
+		<div id="preview">
+			<canvas id="canvas">
+				<p>Preview functionality requires a browser that supports the
+				<a href="http://www.w3.org/html/wg/html5/">HTML5</a> 
+				&lt;canvas&gt; feature.</p>
+			</canvas>
+		</div>
+	</div>
+</div>
+<div id="tab-export">
+	<span id="makePdfButton" class="button">Make PDF</span>
+</div>
+<div id="tab-settings">
+</div>
+<div id="tab-help">
+</div>
+</div>
+</body>
+</html>

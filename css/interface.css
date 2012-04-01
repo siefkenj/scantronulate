@@ -1,0 +1,24 @@
+#studentList {
+	float: left;
+	width: 50%;
+	height: 100%;
+}
+#preview {
+	float: right;
+	width: 50%;
+	overflow: scroll;
+	height: 100%;
+}
+#canvas {
+	width: 1100px;
+	height: 850px;
+}
+
+#container {
+	height: 90%;
+	/* overflow: hidden; */
+}
+
+.inactiveRow {
+	color: #BBBBBB;
+}
