@@ -1,4 +1,7 @@
 var studentList, importDialog;
+var scantronBackgroundImage = new Image();
+scantronBackgroundImage.src = 'images/scantron-small.jpg';
+
 $(document).ready(function() {
     // Set up the drag and drop
     var dropbox = document.getElementById("dropbox");
@@ -10,6 +13,8 @@ $(document).ready(function() {
 
     $('.button').button();
     $('#tabs').tabs();
+    $('#files').change(openFile);
+    $('#makePdfButton').click(makePdf);
 /*    studentList = $('#studentListTable').dataTable({
         bPaginate: false,
         sScrollY: '100%',
@@ -17,6 +22,13 @@ $(document).ready(function() {
     }); */
 
     importDialog = new ImportDialog;
+    $('#errorDialog').dialog({
+        autoOpen: false,
+        modal: true,
+        buttons: {
+            Ok: function() { $(this).dialog('close'); }
+        }
+    });
 
 /*    studentList.fnAddData(
          [
@@ -29,14 +41,114 @@ $(document).ready(function() {
 */
 });
 
+function makePdf() {
+    var doc = new jsPDF('landscape', 'pt', 'letter');
+    // TODO: make this read from settings
+    var scantronLayout = SCANTRON_LAYOUTS[DEFAULT_SCANTRON_LAYOUT];
+    var columns = studentList.columns;
+    
+    // Loop through each row of the table and make a new page for each
+    $('#studentList tbody tr').each(function(rowIndex, tr) {
+        var row = $('td', tr);
+        var rowData = row.map(function(i, x) { return $(x).text(); });
+        
+        var data = {};
+        $(columns).each(function(i, item) {
+            data[item] = rowData[i];
+        });
+
+        data = processUVicRow(data);
+        var st = new Scantron(scantronLayout);
+        st.fillPdf(data, doc);
+        doc.addPage();
+//        console.log(rowData, data, st);
+    });
+
+    // Serve up the pdf to the user
+    doc.output('datauri');
+
+}
+
+// Processes the strings in data and returns a properly formatted object
+// We assume data has keys:
+//      'Course and Section': the section
+//      'Student ID': the student's ID
+//      'Name': Comma separated "last, first" name
+function processUVicRow(data) {
+    // convert a section number into letters so that it may be encoded into the username
+    function encodeSection(sectionNumber) {
+        var encodeTable = { '0':'a', '1':'b', '2':'c', '3':'d', '4':'e', '5':'f', '6':'g', '7':'h', '8':'i', '9':'j' };
+        return (sectionNumber.split('').map(function(x){ return encodeTable[x]; })).join('');
+    }
+
+    var classNumber = '100';
+    if ($('#classNumber-importSettings').val().length > 0) {
+        classNumber = $.trim($('#classNumber-importSettings').val());
+    }
+    var sectionNumber = '01', match;
+    if (data['Course and Section']) {
+        sectionNumber = data['Course and Section'];
+        match = sectionNumber.match(/(\d+)/);
+        if (match) {
+            sectionNumber = match[1];
+        }
+    }
+
+    var name = 'NoLast, NoFirst', nameLast = 'NoLast', nameFirst='NoFirst';
+    if (data['Name']) {
+        name = data['Name'];
+    }
+    match = name.match(/(.*),(.*)/);
+    if (match) {
+        nameLast = match[1].replace(/\s/g, '');
+        nameFirst = match[2].replace(/\s/g, '');
+    }
+
+    var studentId = '111111';
+    match = null;
+    if (data['Student ID']) {
+        match = data['Student ID'].match(/(\d+)/);
+    }
+    if (match) {
+        studentId = match[1].substr(-6);
+    }
+
+    var testDay='00', testMonth='00', testYear='0000';
+    var date = $('#datepicker-importSettings').val();
+    match = date.match(/(\d+)\/(\d+)\/(\d+)/);
+    if (match) {
+        testMonth = match[1];
+        testDay = match[2];
+        testYear = match[3];
+    }
+    // Format the dates so they are 2 digits long with leading zeros
+    testDay = ('0000' + testDay).substr(-2);
+    testYear = ('0000' + testYear).substr(-2);
+    // The month should be a digit 1-12
+    testMonth = '' + parseInt(testMonth, 10);
+    
+    
+    // Format how we want it output to the scantron
+    var outputData = {};
+    outputData['Student ID'] = studentId;
+    outputData['Course and Section'] = classNumber + sectionNumber;
+    outputData['Month'] = testMonth;
+    outputData['Day'] = testDay;
+    outputData['Year'] = testYear;
+    outputData['Name'] = encodeSection(sectionNumber) + ' ' + nameLast + ' ' + nameFirst
+    
+    return outputData;
+}
+
 // Creates a dataTables table to display the student list
 function StudentList() {
     this._init.apply(this, arguments);
 }
 StudentList.prototype = {
-    _init: function(columns, data) {
+    _init: function(columns, data, scantronLayout) {
         this.columns = $.extend(true, [], columns);
         this.data = $.extend(true, [], data);
+        this.scantronLayout = scantronLayout || SCANTRON_LAYOUTS[DEFAULT_SCANTRON_LAYOUT];
 
         // remove any events that already are assigned to the rows
         $('#studentListTable tbody tr').die();
@@ -53,7 +165,7 @@ StudentList.prototype = {
         this.studentList = $('#studentListTable').dataTable({
             bPaginate: false,
             bJQueryUI: true,
-            sScrollY: '100%',
+            sScrollY: '200px',
             bProcessing: true,
         });
         if (data) {
@@ -72,7 +184,6 @@ StudentList.prototype = {
 
     // Callback for when a row is clicked.
     studentListClick: function(evt) {
-        console.log('clicked')
         var target = evt.currentTarget;
         // Handle the highlighting of a selected row
         if ($(target).hasClass('row_selected')) {
@@ -90,7 +201,34 @@ StudentList.prototype = {
             data[item] = rowData[i];
         });
         
-        previewData(data);
+        this.previewData(data);
+    },
+
+    previewData: function (data) {
+        var canvas = document.getElementById('canvas');
+        if (canvas.getContext) {
+            // Set up the dimensions of the canvas to match those of the image.
+            // This is different than the css settings which only affect the display
+            // width/height and not the resolution given to the canvas
+            canvas.setAttribute('width', scantronBackgroundImage.width);
+            canvas.setAttribute('height', scantronBackgroundImage.height);
+
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(scantronBackgroundImage, 0, 0, canvas.width, canvas.height);
+
+            // Scale the context so we are dealing with values in pt=1/72in as
+            // if we were working with an 11x8.5in paper (i.e., 792x612 pts)
+            var widthInPts = 792, heightInPts = 612;
+            ctx.save();
+            ctx.scale(canvas.width/widthInPts, canvas.height/heightInPts);
+
+            // Render the row to the preview area
+            var canvasPdf = new CanvasPdf(ctx);
+            var st = new Scantron(this.scantronLayout);
+            st.fillPdf(processUVicRow(data), canvasPdf);
+
+            ctx.restore();
+        }
     }
 }
 
@@ -102,10 +240,15 @@ function ImportDialog() {
 ImportDialog.prototype = {
     _init: function() {
         this.data = [];
+        $('#datepicker-importSettings').datepicker();
+        var today = new Date();
+        var prettyDate = (today.getMonth()+1) + '/' + today.getDate() + '/' + today.getFullYear();
+        $('#datepicker-importSettings').val(prettyDate);
         $('#fromRow-importSettings').change(this.rowFromChange.bind(this));
         this.dialog = $('#importDialog').dialog({
             autoOpen: false,
             modal: true,
+            width: '80%',
             buttons: {
                 Cancel: this.close.bind(this),
                 Import: this.importClick.bind(this)
@@ -114,11 +257,21 @@ ImportDialog.prototype = {
     },
 
     open: function() {
+        $('#droplabel').html('Drop CSV File');
         this.dialog.dialog('open');
     },
     
     close: function() {
         this.dialog.dialog('close');
+    },
+
+    getHeadersFromConfig: function() {
+        // TODO: have this be configurable and not just read from the default!
+        var scantronConfig = SCANTRON_LAYOUTS[DEFAULT_SCANTRON_LAYOUT];
+        if (scantronConfig._defaultOrder) {
+            return scantronConfig._defaultOrder;
+        }
+        return Object.keys(scantronConfig).filter(function(x){ return x.charAt(0) !== '_'; });
     },
 
     importClick: function() {
@@ -145,7 +298,10 @@ ImportDialog.prototype = {
         // Wrap things up
         this.close();
         $('#tabs').tabs('select', '#tab-preview');
-        $('#droplabel').html('Drop CSV File');
+        // Call this so the header columns show up correctly sized
+        // And while we're at it, simulate a click on the first row
+        studentList.studentList.fnDraw();
+        studentList.studentListClick({currentTarget: studentList.studentList.find('tbody tr')[0]});
     },
 
     rowFromChange: function() {
@@ -177,8 +333,7 @@ ImportDialog.prototype = {
         for (i=0; i < numCols; i++) {
             var select = $('<select />');
             // Add all the options for the current scantron
-            // TODO: read this from the currently selected scantron
-            $(['sudentId', 'name', 'class', 'section']).each(function(j, item) {
+            $(this.getHeadersFromConfig()).each(function(j, item) {
                 var option = $('<option value="'+item+'">'+item+'</option>');
                 // Select the ith item on the list
                 if (j === i) {
@@ -212,129 +367,84 @@ ImportDialog.prototype = {
     }
 }
 
-
-function populateStudentList(data) {
-    importDialog.update(data)
-    importDialog.open();
-    if (!studentList) {
-        throw {'message': 'Error, tried to populate studentList before it was initialized'};
-    }
-    studentList.fnClearTable();
-//    studentList.fnAddData(data);
-    $(data).each(function(i,x) {
-        if (x.length === 3) {
-            studentList.fnAddData([
-                x[2], x[1], 'mth100', x[0]
-            ]);
-        }
-    });
-}
-
-var scantronBackgroundImage = new Image(1100, 850);
-scantronBackgroundImage.src = 'images/scantron-small.jpg';
-function previewData(data) {
-    var canvas = document.getElementById('canvas');
-    if (canvas.getContext) {
-        // Set up the dimensions of the canvas to match those of the image.
-        // This is different than the css settings which only affect the display
-        // width/height and not the resolution given to the canvas
-        canvas.setAttribute('width', scantronBackgroundImage.width);
-        canvas.setAttribute('height', scantronBackgroundImage.height);
-
-        var ctx = canvas.getContext('2d');
-        ctx.drawImage(scantronBackgroundImage, 0, 0, canvas.width, canvas.height);
-
-        // Scale the context so we are dealing with values in pt=1/72in as
-        // if we were working with an 11x8.5in paper (i.e., 792x612 pts)
-        var widthInPts = 792, heightInPts = 612;
-        ctx.save();
-        ctx.scale(canvas.width/widthInPts, canvas.height/heightInPts);
-
-        // Render the row to the preview area
-        var canvasPdf = new CanvasPdf(ctx);
-        var st = new Scantron(SCANTRON_LAYOUT);
-        st.fillPdf(data, canvasPdf);
-
-        ctx.restore();
-
-    }
-}
-
-
 // Decode dataURI
 function decodeDataURI(dataURI) {
-	var
-		content = dataURI.indexOf(",")
-		,meta = dataURI.substr(5, content).toLowerCase()
-		// 'data:'.length == 5
-		,data = decodeURIComponent(dataURI.substr(content + 1))
-	;
+    var content = dataURI.indexOf(","), meta = dataURI.substr(5, content).toLowerCase(), data = decodeURIComponent(dataURI.substr(content + 1));
 	
-	if (/;\s*base64\s*[;,]/.test(meta)) {
-		data = atob(data); // decode base64
+    if (/;\s*base64\s*[;,]/.test(meta)) {
+        data = atob(data); // decode base64
 	}
-	if (/;\s*charset=[uU][tT][fF]-?8\s*[;,]/.test(meta)) {
-		data = decodeURIComponent(escape(data)); // decode UTF-8
-	}
+    if (/;\s*charset=[uU][tT][fF]-?8\s*[;,]/.test(meta)) {
+        data = decodeURIComponent(escape(data)); // decode UTF-8
+    }
 	
-	return data;
+    return data;
 };
 
 
 
 // Drag and drop functions
 function dragEnter(evt) {
-	evt.stopPropagation();
-	evt.preventDefault();
+    evt.stopPropagation();
+    evt.preventDefault();
 }
 function dragExit(evt) {
-	evt.stopPropagation();
-	evt.preventDefault();
+    evt.stopPropagation();
+    evt.preventDefault();
 }
 function dragOver(evt) {
-	evt.stopPropagation();
-	evt.preventDefault();
+    evt.stopPropagation();
+    evt.preventDefault();
 }
 function drop(evt) {
-	evt.stopPropagation();
-	evt.preventDefault();
+    evt.stopPropagation();
+    evt.preventDefault();
 
-	var files = evt.dataTransfer.files;
-	var count = files.length;
+    var files = evt.dataTransfer.files;
+    var count = files.length;
 
-	// Only call the handler if 1 or more files was dropped.
-	if (count > 0)
-		handleFiles(files);
+    // Only call the handler if 1 or more files was dropped.
+    if (count > 0)
+        handleFiles(files);
+}
+function openFile(evt) {
+    var files = evt.target.files;
+    if (files.length > 0) {
+        handleFiles(files);
+    }
 }
 
 function handleFiles(files) {
-	var file = files[0];
+    var file = files[0];
 
-	document.getElementById("droplabel").innerHTML = "Processing " + file.name;
+    document.getElementById("droplabel").innerHTML = "Processing " + file.name;
 
-	var reader = new FileReader();
+    var reader = new FileReader();
 
-	// init the reader event handlers
-	reader.onprogress = handleReaderProgress;
-	reader.onloadend = handleReaderLoadEnd;
+    // init the reader event handlers
+    reader.onprogress = handleReaderProgress;
+    reader.onloadend = handleReaderLoadEnd;
 
-	// begin the read operation
-	reader.readAsDataURL(file);
+    // begin the read operation
+    reader.readAsDataURL(file);
 }
 function handleReaderProgress(evt) {
-	if (evt.lengthComputable) {
-		var loaded = (evt.loaded / evt.total);
+    if (evt.lengthComputable) {
+            var loaded = (evt.loaded / evt.total);
 //		$("#progressbar").progressbar({ value: loaded * 100 });
-	}
+    }
 }
 
 function handleReaderLoadEnd(evt) {
-	//$("#progressbar").progressbar({ value: 100 });
-        console.log(evt.target.result)
-        var data = decodeDataURI(evt.target.result);
-        console.log(data)
-        //document.getElementById("droplabel").innerHTML = data;
-        var parsed = CSVToArray(data);
-        console.log(parsed)
-        populateStudentList(parsed);
+    //$("#progressbar").progressbar({ value: 100 });
+    if (evt.target.error) {
+        $('#errorCode').html(evt.target.error + ' Error Code: ' + evt.target.error.code + ' ');
+        $('#errorDialog').dialog('open');
+        return;
+    }
+    var data = decodeDataURI(evt.target.result);
+    var parsed = CSVToArray(data);
+    
+    importDialog.update(parsed);
+    importDialog.open();
 }

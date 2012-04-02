@@ -20,6 +20,7 @@
 	<script type="text/javascript" src="js/scantronLib.js"></script>
 	<script type="text/javascript" src="js/canvasPdf.js"></script>
 	<script type="text/javascript" src="js/interface.js"></script>
+	<script type="text/javascript" src="js/config.js"></script>
 </head>
 <body>
 <div id="tabs">
@@ -31,7 +32,14 @@
 	<li><a href="#tab-help">Help</a></li>
 </ul>
 <div id="tab-importData">
-	<div id="dropbox"><span id="droplabel">Drop CSV File</span></div>
+	<p> 
+		Select a CSV file for import.
+	</p>
+		<input type="file" id="files" name="files[]" />
+	<p>
+		Or, drag and drop a CSV file below.
+	</p>
+		<div id="dropbox"><span id="droplabel">Drop CSV File</span></div>
 	<div id="importDialog" title="Import Settings">
 		<p>Select which columns are relevant for importing</p>
 		<table id="table-importSettings">
@@ -43,12 +51,26 @@
 		<p>
 			Start from row: <input type="text" id="fromRow-importSettings" value='0' style="width: 2em"/>
 		</p>
+		<p>
+			Test Date: <input id='datepicker-importSettings' type='text' />
+		</p>
+		<p>
+			Class Number: <input id='classNumber-importSettings' type='text' /> (Leave blank to have the course read from input data)
+		</p>
+	</div>
+	<div id="errorDialog" title="Error">
+		<p>Encountered error <span id='errorCode'></span>
+		while
+		loading file.  Does your browser have the appropriate 
+		permissions set?
+		</p>
 	</div>
 </div>
 <div id="tab-preview">
+	<p>If you are satisfied with the data, proceed to the Export tab.</p>
 	<div id="container">
 		<div id="studentList">
-			<!-- <table cellpadding="0" cellspacing="0" border="0" class="studentList" id="studentListTable">
+			<table cellpadding="0" cellspacing="0" border="0" class="studentList" id="studentListTable">
 				<thead>
 					<tr>
 						<th>ID</th>
@@ -57,7 +79,7 @@
 						<th>Section</th>
 					</tr>
 				</thead>
-			</table> -->
+			</table>
 		</div>
 		<div id="preview">
 			<canvas id="canvas">

@@ -1,0 +1,21 @@
+Scantronulate is software to assist in autofilling
+bubbles on scantron sheets based on information provided
+by a spreadsheet.  It outputs a PDF that can be printed directly
+onto scantrons.
+
+To run, open 
+	scantronulate.html
+in a web browser.  Then proceed to open a CSV (comma separated values)
+file containing the student information you wish to autofill with.
+
+To add or edit the scantron metrics, edit
+	js/config.js
+
+== Notes ==
+	* Chrome/Chromium by default will not allow javascript access of local files
+	  if run locally.  To test in a local repo, run 
+	  > chromium --allow-file-access-from-files --allow-file-access
+
+== Liscense ==
+
+GPLv3

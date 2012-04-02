@@ -20,39 +20,6 @@ function applyTranslationTable(string, table) {
     return ret;
 }
 
-// pre-defined translation tables
-var TRANSLATION_TABLE_ALPHA = {' ':0, A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, G: 7, H: 8, I: 9, J: 10, K: 11, L: 12, M: 13, N: 14, O: 15, P: 16, Q: 17, R: 18, S: 19, T: 20, U: 21, V: 22, W: 23, X: 24, Y: 25, Z: 26 };  //{' ':0, a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8, i: 9, j: 10, k: 11, l: 12, m: 13, n: 14, o: 15, p: 16, q: 17, r: 18, s: 19, t: 20, u: 21, v: 22, w: 23, x: 24, y: 25, z: 26 };
-var TRANSLATION_TABLE_NUMBER = {'0':0, '1':1, '2':2, '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9 };
-// A pre-defined page layout for a scantron sheet
-var SCANTRON_LAYOUT = {
-    name: {
-        textExtents: [29,213,270,237],
-        bubbleExtents: [29,237,270,560], 
-        rows: 27,
-        cols: 20, 
-        layout: 'vertical',
-        translationTable: TRANSLATION_TABLE_ALPHA
-    },
-    studentId: {
-        textExtents: [31,56,114,80],
-        bubbleExtents: [31,80,114,202], 
-        rows: 10,
-        cols: 7, 
-        layout: 'vertical',
-        translationTable: TRANSLATION_TABLE_NUMBER
-    },
-    section: {
-        textExtents: [115,56,175,80],
-        bubbleExtents: [115,80,175,202], 
-        rows: 10,
-        cols: 5, 
-        layout: 'vertical',
-        translationTable: TRANSLATION_TABLE_NUMBER
-    },
-}
-
-
-
 function Scantron() {
     this._init.apply(this, arguments);
 }
@@ -63,20 +30,24 @@ Scantron.prototype = {
 
         var i;
         for (i in this.pageLayout) {
-            var curr = this.pageLayout[i];
-            this['region_'+i] = new FillRegion(curr.textExtents, curr.bubbleExtents, 
-                                               curr.rows, curr.cols, curr.orientation,
-                                               curr.translationTable);
+            if (i.charAt(0) !== '_') {
+                var curr = this.pageLayout[i];
+                this['region_'+i] = new FillRegion(curr.textExtents, curr.bubbleExtents, 
+                                                   curr.rows, curr.cols, curr.orientation,
+                                                   curr.translationTable);
+            }
         }
     },
 
-    fillPdf: function(data, pdf) {
+    fillPdf: function(data, pdf, drawOutline) {
         var i, curr;
         for (i in data) {
             if(this['region_'+i]) {
                 curr = this['region_'+i];
                 curr.fillWithText(data[i], pdf);
-                curr.drawOutline(pdf);
+                if (drawOutline) {
+                    curr.drawOutline(pdf);
+                }
             }
         }
     }
@@ -97,8 +68,8 @@ FillRegion.prototype = {
         this.orientation = orientation || 'vertical';
         var textCols = this.orientation === 'vertical' ? cols : 1;
         var textRows = this.orientation === 'vertical' ? 1 : rows;
-        this.textRegion = new TextRegion(textCoords, textRows, textCols, this.orientation);
-        this.bubbleRegion = new BubbleRegion(bubbleCoords, rows, cols, this.orientation);
+        this.textRegion = textCoords == null ? null : new TextRegion(textCoords, textRows, textCols, this.orientation);
+        this.bubbleRegion = bubbleCoords == null ? null : new BubbleRegion(bubbleCoords, rows, cols, this.orientation);
     },
 
     fillWithText: function(text, pdf) {
@@ -106,16 +77,22 @@ FillRegion.prototype = {
         text = text.toUpperCase();
         // First write all the text to the pdf document
         var i;
-        var letterCoords = this.textRegion.getLetterCoords(text);
-        for (i = 0; i < letterCoords.length; i++) {
-            pdf.text(letterCoords[i][0], letterCoords[i][1], text.charAt(i));
+        if (this.textRegion) {
+            var letterCoords = this.textRegion.getLetterCoords(text);
+            for (i = 0; i < letterCoords.length; i++) {
+                // TODO: +2,-5 are corrections so the letters look a little more
+                // centered.  It would be good to actually read font data somehow...
+                pdf.text(letterCoords[i][0] + 2, letterCoords[i][1] - 5, text.charAt(i));
+            }
         }
 
         // Now, fill in the bubbles
-        var translated = applyTranslationTable(text, this.translationTable);
-        var bubbleCoords = this.bubbleRegion.getBubbleCoords(translated);
-        for (i = 0; i < bubbleCoords.length; i++) {
-            pdf.circle(bubbleCoords[i][0], bubbleCoords[i][1], this.bubbleRegion.bubbleRadius, 'F');
+        if (this.bubbleRegion) {
+            var translated = applyTranslationTable(text, this.translationTable);
+            var bubbleCoords = this.bubbleRegion.getBubbleCoords(translated);
+            for (i = 0; i < bubbleCoords.length; i++) {
+                pdf.circle(bubbleCoords[i][0], bubbleCoords[i][1], this.bubbleRegion.bubbleRadius, 'F');
+            }
         }
     },
 
@@ -139,11 +116,15 @@ FillRegion.prototype = {
                 pdf.line(x, coords[1], x, coords[3])
             }
         }
-
-        drawBox(this.textRegion.coords);
-        drawVerticalDividers(this.textRegion.coords, this.textRegion.cols)
-        drawBox(this.bubbleRegion.coords);
-        drawVerticalDividers(this.bubbleRegion.coords, this.bubbleRegion.cols)
+        
+        if (this.textRegion) {
+            drawBox(this.textRegion.coords);
+            drawVerticalDividers(this.textRegion.coords, this.textRegion.cols);
+        }
+        if (this.bubbleRegion) {
+            drawBox(this.bubbleRegion.coords);
+            drawVerticalDividers(this.bubbleRegion.coords, this.bubbleRegion.cols);
+        }
     }
 }
 
@@ -247,11 +228,10 @@ BubbleRegion.prototype = {
 }
 
 
-function testpage1() {
+function makeTestPdf() {
     var doc = new jsPDF('landscape', 'pt', 'letter');
-
-    var st = new Scantron(SCANTRON_LAYOUT);
-    st.fillPdf({name:'bilbow baggins', studentId: '12345', section:'041'}, doc);
+    var st = new Scantron(SCANTRON_LAYOUTS[DEFAULT_SCANTRON_LAYOUT]);
+    st.fillPdf({Name:'bilbow baggins', 'Student ID': '12345', 'Course and Section':'041'}, doc);
     // Output as Data URI
     doc.output('datauri');
 }
