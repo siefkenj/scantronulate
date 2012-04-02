@@ -1,0 +1,47 @@
+<html>
+<head>
+	<title>Scantronulate</title>
+	<!-- jQuery includes -->
+	<script type="text/javascript" src="jquery/js/jquery-1.7.2.js"></script>
+	<script type="text/javascript" src="jquery/js/jquery-ui-1.8.18.custom.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="jquery/css/redmond/jquery-ui-1.8.18.custom.css" />
+	<script type="text/javascript" src="jquery/js/jquery.dataTables.js"></script>
+	<link rel="stylesheet" type="text/css" href="jquery/css/jquery.dataTables.css" />
+
+	<!-- jsPDF includes -->
+	<script type="text/javascript" src="jsPDF/libs/base64.js"></script>
+	<script type="text/javascript" src="jsPDF/libs/sprintf.js"></script>
+	<script type="text/javascript" src="jsPDF/jspdf.js"></script>
+
+	<!-- scantronulate includes -->
+	<link rel="stylesheet" type="text/css" href="css/dndimg.css" />
+	<link rel="stylesheet" type="text/css" href="css/interface.css" />
+	<script type="text/javascript" src="js/csvparse.js"></script>
+	<script type="text/javascript" src="js/scantronLib.js"></script>
+	<script type="text/javascript" src="js/canvasPdf.js"></script>
+	<!-- <script type="text/javascript" src="js/interface.js"></script> -->
+	<script type="text/javascript" src="js/config.js"></script>
+<script type="text/javascript">
+	$(document).ready(function(){
+		$('#makeCalibrate').button();
+		$('#makeCalibrate').click(makeCalibrate);
+	});
+
+	function makeCalibrate() {
+		var doc = new jsPDF('landscape', 'pt', 'letter');
+		var i;
+		for(i=0; i < 792; i += 72) {
+			doc.line(i, 0, i, 612);
+		}
+		for(i=0; i < 612; i += 72) {
+			doc.line(0, i, 792, i);
+		}
+		doc.output('datauri');
+	}
+
+</script>
+</head>
+<body>
+	<span id="makeCalibrate" class="button">Make Calibration</span>
+</body>
+</html>
