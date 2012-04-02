@@ -11,8 +11,11 @@ var DEFAULT_SCANTRON_LAYOUT = 'UVic';
 // All units are in pts (1pt = 1/72 inches).
 var SCANTRON_LAYOUTS = {
     'UVic': {
-        _defaultOrder: ['Student ID', 'Name', 'Course and Section'],
-        //_defaultOrder: ['Course and Section', 'Name', 'Student ID'],
+    	_printerOffsets: {
+		'4250': [-3.5, 2]
+	},
+        //_defaultOrder: ['Student ID', 'Name', 'Course and Section'],
+        _defaultOrder: ['Course and Section', 'Name', 'Student ID'],
         'Name': {
             textExtents: [30,213,270,237],
             bubbleExtents: [30,237,270,560], 

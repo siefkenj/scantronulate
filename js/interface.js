@@ -45,6 +45,7 @@ function makePdf() {
     var doc = new jsPDF('landscape', 'pt', 'letter');
     // TODO: make this read from settings
     var scantronLayout = SCANTRON_LAYOUTS[DEFAULT_SCANTRON_LAYOUT];
+    var printerOffsets = SCANTRON_LAYOUTS[DEFAULT_SCANTRON_LAYOUT]['_printerOffsets']['4250'];
     var columns = studentList.columns;
     
     // Loop through each row of the table and make a new page for each
@@ -58,8 +59,8 @@ function makePdf() {
         });
 
         data = processUVicRow(data);
-        var st = new Scantron(scantronLayout);
-        st.fillPdf(data, doc);
+        var st = new Scantron(scantronLayout, printerOffsets);
+        st.fillPdf(data, doc, true);
         doc.addPage();
 //        console.log(rowData, data, st);
     });
