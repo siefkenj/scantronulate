@@ -57,6 +57,9 @@
 		<p>
 			Class Number: <input id='classNumber-importSettings' type='text' /> (Leave blank to have the course read from input data)
 		</p>
+		<p>
+			<input id='encodeSection-importSettings' type='checkbox' value='encodeSection' checked="true" /> Encode Section in Name
+		</p>
 	</div>
 	<div id="errorDialog" title="Error">
 		<p>Encountered error <span id='errorCode'></span>
@@ -91,7 +94,25 @@
 	</div>
 </div>
 <div id="tab-export">
+	<h3>Export Options</h3>
+	<p>
+	Printer to generate PDF for:
+	<select id="outputPrinter"></select>. 
+	(<span class='emph'>Note that every printer has specific alignment issues. 
+	Printing a PDF generated for a specific printer on another may produce a mis-aligned
+	result.</span>)
+	</p>
+	<p>
+	Sorting: 
+	<select id="sorting">
+		<option value='name'>Last Name</option>
+		<option value='section-name' selected="true">Section then Name</span>
+		<option value='id' selected="true">Student ID</span>
+	</select>
+	</p>
+	<p>
 	<span id="makePdfButton" class="button">Make PDF</span>
+	</p>
 </div>
 <div id="tab-settings">
 </div>

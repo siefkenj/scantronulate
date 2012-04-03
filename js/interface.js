@@ -45,10 +45,20 @@ function makePdf() {
     var doc = new jsPDF('landscape', 'pt', 'letter');
     // TODO: make this read from settings
     var scantronLayout = SCANTRON_LAYOUTS[DEFAULT_SCANTRON_LAYOUT];
-    var printerOffsets = SCANTRON_LAYOUTS[DEFAULT_SCANTRON_LAYOUT]['_printerOffsets']['4250'];
+    // get the printer offset from the option box
+    var printerOption = $('#outputPrinter option:selected').val();
+    var printerOffsets;
+    try {
+        printerOffsets = SCANTRON_LAYOUTS[DEFAULT_SCANTRON_LAYOUT]['_printerOffsets'][printerOption];
+    } catch(e) {}
+    if (!printerOffsets) {
+        printerOffsets = [0, 0];
+    }
+
     var columns = studentList.columns;
     
     // Loop through each row of the table and make a new page for each
+    var formattedStudentData = [];
     $('#studentList tbody tr').each(function(rowIndex, tr) {
         var row = $('td', tr);
         var rowData = row.map(function(i, x) { return $(x).text(); });
@@ -58,16 +68,46 @@ function makePdf() {
             data[item] = rowData[i];
         });
 
-        data = processUVicRow(data);
-        var st = new Scantron(scantronLayout, printerOffsets);
-        st.fillPdf(data, doc, true);
-        doc.addPage();
-//        console.log(rowData, data, st);
+        data = processUVicRow(data, $('#encodeSection-importSettings').prop('checked'));
+        formattedStudentData.push(data);
+    });
+    // Now that we have the data, let's sort it in the right way
+    switch ($('#sorting option:selected').val()) {
+        case 'name':
+            formattedStudentData = formattedStudentData.sort(function(a,b){
+                return a['Name'] > b['Name'];
+            });
+            break;
+        case 'section-name':
+            formattedStudentData = formattedStudentData.sort(function(a,b){
+                return a['Course and Section'] > b['Course and Section'] ||
+                    (a['Course and Section'] === b['Course and Section'] && a['Name'] > b['Name']);
+            });
+            break;
+        case 'id':
+            formattedStudentData = formattedStudentData.sort(function(a,b){
+                return a['Student ID'] > b['Student ID'];
+            });
+            break;
+    }
+
+    var st = new Scantron(scantronLayout, printerOffsets);
+    doc.setFont('courier');
+    $(formattedStudentData).each(function(i, item) {
+        st.fillPdf(item, doc);
+        if (i !== formattedStudentData.length - 1) {
+            doc.addPage();
+        }
+    })
+
+    doc.setProperties({
+        title: 'Prefilled Scantron',
+        creator: 'Scantronulate',
+        subject: 'Printer correction offset: [' + printerOffsets + '] (in pts)'
     });
 
     // Serve up the pdf to the user
     doc.output('datauri');
-
 }
 
 // Processes the strings in data and returns a properly formatted object
@@ -75,7 +115,7 @@ function makePdf() {
 //      'Course and Section': the section
 //      'Student ID': the student's ID
 //      'Name': Comma separated "last, first" name
-function processUVicRow(data) {
+function processUVicRow(data, encodeSectionNumber) {
     // convert a section number into letters so that it may be encoded into the username
     function encodeSection(sectionNumber) {
         var encodeTable = { '0':'a', '1':'b', '2':'c', '3':'d', '4':'e', '5':'f', '6':'g', '7':'h', '8':'i', '9':'j' };
@@ -101,8 +141,8 @@ function processUVicRow(data) {
     }
     match = name.match(/(.*),(.*)/);
     if (match) {
-        nameLast = match[1].replace(/\s/g, '');
-        nameFirst = match[2].replace(/\s/g, '');
+        nameLast = match[1].replace(/\W/g, '');
+        nameFirst = match[2].replace(/\W/g, '');
     }
 
     var studentId = '111111';
@@ -136,7 +176,11 @@ function processUVicRow(data) {
     outputData['Month'] = testMonth;
     outputData['Day'] = testDay;
     outputData['Year'] = testYear;
-    outputData['Name'] = encodeSection(sectionNumber) + ' ' + nameLast + ' ' + nameFirst
+    if (encodeSectionNumber) {
+        outputData['Name'] = encodeSection(sectionNumber) + ' ' + nameLast + ' ' + nameFirst;
+    } else {
+        outputData['Name'] = nameLast + ' ' + nameFirst;
+    }
     
     return outputData;
 }
@@ -226,7 +270,7 @@ StudentList.prototype = {
             // Render the row to the preview area
             var canvasPdf = new CanvasPdf(ctx);
             var st = new Scantron(this.scantronLayout);
-            st.fillPdf(processUVicRow(data), canvasPdf);
+            st.fillPdf(processUVicRow(data, $('#encodeSection-importSettings').prop('checked')), canvasPdf);
 
             ctx.restore();
         }
@@ -276,6 +320,9 @@ ImportDialog.prototype = {
     },
 
     importClick: function() {
+        // TODO: have this be configurable and not just read from the default!
+        var scantronConfig = SCANTRON_LAYOUTS[DEFAULT_SCANTRON_LAYOUT];
+        
         var rowFrom = parseInt($('#fromRow-importSettings').attr('value'), 10);
         var rowLabels = $('#table-importSettings thead option:selected').map(function(i, item){ return $(item).val(); });
 
@@ -303,6 +350,13 @@ ImportDialog.prototype = {
         // And while we're at it, simulate a click on the first row
         studentList.studentList.fnDraw();
         studentList.studentListClick({currentTarget: studentList.studentList.find('tbody tr')[0]});
+
+        // Set up the printer types based on the scantronConfig's listed printers
+        $('#outputPrinter').html('');
+        $(Object.keys(scantronConfig['_printerOffsets'])).each(function(i, item) {
+            $('#outputPrinter').append('<option value="'+item+'">'+item+'</option>');
+        });
+        $('#outputPrinter').append('<option value="none">Unspecified Printer</option>');
     },
 
     rowFromChange: function() {

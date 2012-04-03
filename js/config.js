@@ -9,6 +9,7 @@ var DEFAULT_SCANTRON_LAYOUT = 'UVic';
 // A pre-defined layouts for scantrons.
 // Any additional scantron layout should be added here.
 // All units are in pts (1pt = 1/72 inches).
+// Any entries not starting with '_' are assumed to be scantron fields
 var SCANTRON_LAYOUTS = {
     'UVic': {
     	_printerOffsets: {
