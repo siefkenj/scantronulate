@@ -20,11 +20,13 @@ $(document).ready(function() {
     dropbox.addEventListener("drop", drop, false);
 
 
+    $('#tabs').tabs();
     $('.button').button();
     $('.datepicker').datepicker();
-    $('#tabs').tabs();
     $('#files').change(openFile);
     $('#makePdfButton').click(makePdf);
+    $('#exportProgress').progressbar();
+    $('#exportProgress').hide();
 
     importDialog = new ImportDialog;
     $('#errorDialog').dialog({
@@ -38,6 +40,7 @@ $(document).ready(function() {
 });
 
 function makePdf() {
+    $('#exportProgress').show(200);
     var doc = new jsPDF('landscape', 'pt', 'letter');
     // TODO: make this read from settings
     var scantronLayout = SCANTRON_LAYOUTS[DEFAULT_SCANTRON_LAYOUT];
@@ -87,23 +90,48 @@ function makePdf() {
             break;
     }
 
+
+    var numItems = formattedStudentData.length;
+
     var st = new Scantron(scantronLayout, printerOffsets);
     doc.setFont('courier');
-    $(formattedStudentData).each(function(i, item) {
-        st.fillPdf(item, doc);
-        if (i !== formattedStudentData.length - 1) {
-            doc.addPage();
+    // Since we don't want to block the UI for too long, we need to create
+    // the pdf in chunks
+    function addPdfChunk(start, numChunksToAdd) {
+        var i;
+        // When doc is created, it already has a blank page, so we don't need to create one
+        // for index 0
+        if (start === 0) {
+            st.fillPdf(formattedStudentData[0], doc);
+            start++;
         }
-    })
+        for (i = start; i < formattedStudentData.length && i < start + numChunksToAdd; i++) {
+            doc.addPage();
+            st.fillPdf(formattedStudentData[i], doc);
+        }
+        $('#exportProgress').progressbar({ value: i/formattedStudentData.length*100 });
+        if (i === formattedStudentData.length) {
+            onPdfCompletion();
+            return;
+        }
+        
+        setTimeout(addPdfChunk, 0, start + numChunksToAdd, numChunksToAdd);
+    }
+    function onPdfCompletion() {
+        doc.setProperties({
+            title: 'Prefilled Scantron',
+            creator: 'Scantronulate',
+            subject: 'Printer correction offset: [' + printerOffsets + '] (in pts)'
+        });
 
-    doc.setProperties({
-        title: 'Prefilled Scantron',
-        creator: 'Scantronulate',
-        subject: 'Printer correction offset: [' + printerOffsets + '] (in pts)'
-    });
+        // Serve up the pdf to the user
+        doc.output('datauri');
+        $('#exportProgress').hide(200);
+    }
 
-    // Serve up the pdf to the user
-    doc.output('datauri');
+    // Start creating the actual PDF
+    addPdfChunk(0, 50)
+
 }
 
 // Processes the strings in data and returns a properly formatted object
@@ -207,6 +235,7 @@ StudentList.prototype = {
             bPaginate: false,
             bJQueryUI: true,
             sScrollY: '200px',
+            sScrollX: '100%',
             bProcessing: true,
         });
         if (data) {

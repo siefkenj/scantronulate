@@ -36,7 +36,7 @@
 	<p> 
 		Select a CSV file for import.
 	</p>
-		<input type="file" id="files" name="files[]" />
+		<input type="file" id="files" name="files[]" accept="text/csv" />
 	<p>
 		Or, drag and drop a CSV file below.
 	</p>
@@ -54,16 +54,13 @@
 		</p>
 		<p>
 			Test Date: <span class='sync-testDate' />
-<!--			<input id='datepicker-importSettings' type='text' /> -->
 		</p>
 		<p>
 			Class Number: <span class='sync-courseNumber' />
-<!--			<input id='classNumber-importSettings' type='text' /> -->
 			(Leave blank to have the course read from input data)
 		</p>
 		<p>
 			<span class='sync-encodeSection' />
-<!--			<input id='encodeSection-importSettings' type='checkbox' value='encodeSection' checked="true" /> -->
 			Encode Section in Name
 		</p>
 	</div>
@@ -119,6 +116,7 @@
 	<p>
 	<span id="makePdfButton" class="button">Make PDF</span>
 	</p>
+	<div id="exportProgress"></div>
 </div>
 <div id="tab-settings">
 	<p>
