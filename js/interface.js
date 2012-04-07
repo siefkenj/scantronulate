@@ -146,27 +146,40 @@ function processUVicRow(data, encodeSectionNumber) {
         return (sectionNumber.split('').map(function(x){ return encodeTable[x]; })).join('');
     }
 
+    // Set 'Course and Section'
     var courseNumber = '100';
     if (settings['courseNumber'].value && settings['courseNumber'].value.length > 0) {
         courseNumber = $.trim(settings['courseNumber'].value);
+    } else if (data['Course Number']) {
+        match = data['Course Number'].match(/(\d+)/);
+        if (match) {
+            courseNumber = match[0];
+        }
     }
     var sectionNumber = '01', match;
-    if (data['Course and Section']) {
-        sectionNumber = data['Course and Section'];
+    if (data['Course and Section'] || data['Section']) {
+        sectionNumber = data['Course and Section'] || data['Section'];
         match = sectionNumber.match(/(\d+)/);
         if (match) {
             sectionNumber = match[1];
         }
     }
 
+    // Set 'Name'
     var name = 'NoLast, NoFirst', nameLast = 'NoLast', nameFirst='NoFirst';
-    if (data['Name']) {
+    if (data['Last, First Name']) {
         name = data['Name'];
     }
     match = name.match(/(.*),(.*)/);
     if (match) {
         nameLast = match[1].replace(/\W/g, '');
         nameFirst = match[2].replace(/\W/g, '');
+    }
+    if (data['Last Name']) {
+        nameLast = data['Last Name'].replace(/\W/g, '');
+    }
+    if (data['First Name']) {
+        nameFirst = data['First Name'].replace(/\W/g, '');
     }
 
     var studentId = '000000';
@@ -285,6 +298,7 @@ StudentList.prototype = {
 
             var ctx = canvas.getContext('2d');
             ctx.drawImage(scantronBackgroundImage, 0, 0, canvas.width, canvas.height);
+            ctx.font = '15pt Courier';
 
             // Scale the context so we are dealing with values in pt=1/72in as
             // if we were working with an 11x8.5in paper (i.e., 792x612 pts)
@@ -354,15 +368,24 @@ ImportDialog.prototype = {
         
         var rowFrom = parseInt($('#fromRow-importSettings').attr('value'), 10);
         var rowLabels = $('#table-importSettings thead option:selected').map(function(i, item){ return $(item).val(); });
+        // get a filtered list of the row indices that are acually used
+        // and while we're at it, filter the nouse out of rowLabels
+        var usedRowIndices = [];
+        $(rowLabels).each(function(i, item) {
+            if (item !== 'nouse') {
+                usedRowIndices.push(i);
+            }
+        });
+        rowLabels = $(usedRowIndices).map(function(i, item) { return rowLabels[item]; });
 
         // Create a new array that is appropriately sized 
         var imported = [], row, i, j;
         for (i = rowFrom; i < this.data.length; i++) {
             row = [];
             if (this.data[i].length >= rowLabels.length) {
-                for (j = 0; j < rowLabels.length; j++) {
+                for (j = 0; j < usedRowIndices.length; j++) {
                     // Add the entry data unless it is undefined, in which case add the empty string
-                    row.push(this.data[i][j] == null ? "" : this.data[i][j]);
+                    row.push(this.data[i][usedRowIndices[j]] == null ? "" : this.data[i][usedRowIndices[j]]);
                 }
                 imported.push(row);
             }
@@ -413,22 +436,37 @@ ImportDialog.prototype = {
         }
         // Make the header
 
-        var tableHead = $('#table-importSettings thead tr').empty();
-        for (i=0; i < numCols; i++) {
-            var select = $('<select />');
-            // Add all the options for the current scantron
-            $(this.getHeadersFromConfig()).each(function(j, item) {
-                var option = $('<option value="'+item+'">'+item+'</option>');
-                // Select the ith item on the list
-                if (j === i) {
-                    option.attr('selected', true);
+        // Construct the select box for choosing the type of each column
+        var select = $('<select />');
+        var headers = this.getHeadersFromConfig();
+        var uniqueHeaders = {};
+        $(headers).each(function(i, item) { uniqueHeaders[item] = true; });
+        uniqueHeaders = Object.keys(uniqueHeaders);
+        $(uniqueHeaders).each(function(i, item) {
+                var option = '<option value="'+item+'">'+item+'</option>';
+                if (item === 'nouse') {
+                    option = '<option value="nouse">Don\'t Use</option>';
                 }
                 select.append(option);
-            });
-            select.append('<option value="nouse">Don\'t Use</option>');
-            select.addClass('col-'+i);
+        }.bind(this));
+        // If we didn't already add a nouse option, add one at the end
+        if (!select.find('option:[value="nouse"]').length) {
+                select.append('<option value="nouse">Don\'t Use</option>');
 
-            tableHead.append($('<th />').append(select));
+        }
+
+        var tableHead = $('#table-importSettings thead tr').empty();
+        for (i=0; i < numCols; i++) {
+            var selectUse = select.clone();
+            selectUse.addClass('col-'+i);
+            // Select the appropriate header from the default-header list
+            if (headers[i]) {
+                selectUse.find('option:[value="'+headers[i]+'"]').attr('selected', true);
+            } else {
+                selectUse.find('option:[value="nouse"]').attr('selected', true);
+            }
+
+            tableHead.append($('<th />').append(selectUse));
         }
 
         // Create the table entries
