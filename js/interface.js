@@ -1,8 +1,17 @@
-var studentList, importDialog;
+var studentList, importDialog, settings = {};
 var scantronBackgroundImage = new Image();
 scantronBackgroundImage.src = 'images/scantron-small.jpg';
 
 $(document).ready(function() {
+    // Set up all the syncronized widgets so that the sae settings can be changed from multiple places
+    settings['testDate'] = new SyncronizedWidget($('.sync-testDate'));
+    settings['testDate'].addContent("<input id='datepicker-importSettings' class='datepicker' type='text' />");
+    settings['courseNumber'] = new SyncronizedWidget($('.sync-courseNumber'));
+    settings['courseNumber'].addContent("<input id='classNumber-importSettings' type='text' />");
+    settings['encodeSection'] = new SyncronizedWidget($('.sync-encodeSection'));
+    settings['encodeSection'].addContent("<input id='encodeSection-importSettings' type='checkbox' value='encodeSection' checked='true' />");
+
+
     // Set up the drag and drop
     var dropbox = document.getElementById("dropbox");
     dropbox.addEventListener("dragenter", dragEnter, false);
@@ -12,14 +21,10 @@ $(document).ready(function() {
 
 
     $('.button').button();
+    $('.datepicker').datepicker();
     $('#tabs').tabs();
     $('#files').change(openFile);
     $('#makePdfButton').click(makePdf);
-/*    studentList = $('#studentListTable').dataTable({
-        bPaginate: false,
-        sScrollY: '100%',
-        bProcessing: true,
-    }); */
 
     importDialog = new ImportDialog;
     $('#errorDialog').dialog({
@@ -30,15 +35,6 @@ $(document).ready(function() {
         }
     });
 
-/*    studentList.fnAddData(
-         [
-            [ 'V00678395', 'Humphrey, Charles', 'MTH100', 'A01' ],
-            [ 'V00673325', 'Ray, Phil', 'MTH100', 'A01' ],
-            [ 'V00878395', 'Bogart, Smith-Jones', 'MTH100', 'A01' ],
-            [ 'V00378395', 'Woolz, Jen', 'MTH100', 'A01' ],
-            [ 'V00875345', 'Humphrey, Von Roy', 'MTH100', 'A02' ],
-        ]);
-*/
 });
 
 function makePdf() {
@@ -68,7 +64,7 @@ function makePdf() {
             data[item] = rowData[i];
         });
 
-        data = processUVicRow(data, $('#encodeSection-importSettings').prop('checked'));
+        data = processUVicRow(data, settings['encodeSection'].value);
         formattedStudentData.push(data);
     });
     // Now that we have the data, let's sort it in the right way
@@ -122,9 +118,9 @@ function processUVicRow(data, encodeSectionNumber) {
         return (sectionNumber.split('').map(function(x){ return encodeTable[x]; })).join('');
     }
 
-    var classNumber = '100';
-    if ($('#classNumber-importSettings').val().length > 0) {
-        classNumber = $.trim($('#classNumber-importSettings').val());
+    var courseNumber = '100';
+    if (settings['courseNumber'].value && settings['courseNumber'].value.length > 0) {
+        courseNumber = $.trim(settings['courseNumber'].value);
     }
     var sectionNumber = '01', match;
     if (data['Course and Section']) {
@@ -145,7 +141,7 @@ function processUVicRow(data, encodeSectionNumber) {
         nameFirst = match[2].replace(/\W/g, '');
     }
 
-    var studentId = '111111';
+    var studentId = '000000';
     match = null;
     if (data['Student ID']) {
         match = data['Student ID'].match(/(\d+)/);
@@ -155,7 +151,7 @@ function processUVicRow(data, encodeSectionNumber) {
     }
 
     var testDay='00', testMonth='00', testYear='0000';
-    var date = $('#datepicker-importSettings').val();
+    var date = settings['testDate'].value;
     match = date.match(/(\d+)\/(\d+)\/(\d+)/);
     if (match) {
         testMonth = match[1];
@@ -172,7 +168,7 @@ function processUVicRow(data, encodeSectionNumber) {
     // Format how we want it output to the scantron
     var outputData = {};
     outputData['Student ID'] = studentId;
-    outputData['Course and Section'] = classNumber + sectionNumber;
+    outputData['Course and Section'] = courseNumber + sectionNumber;
     outputData['Month'] = testMonth;
     outputData['Day'] = testDay;
     outputData['Year'] = testYear;
@@ -286,9 +282,13 @@ ImportDialog.prototype = {
     _init: function() {
         this.data = [];
         $('#datepicker-importSettings').datepicker();
+        // Set the date to today's date and make sure we trigger a change event
+        // so that the settings propogate appropriately
         var today = new Date();
         var prettyDate = (today.getMonth()+1) + '/' + today.getDate() + '/' + today.getFullYear();
         $('#datepicker-importSettings').val(prettyDate);
+        $('#datepicker-importSettings').trigger('change');
+        
         $('#fromRow-importSettings').change(this.rowFromChange.bind(this));
         this.dialog = $('#importDialog').dialog({
             autoOpen: false,

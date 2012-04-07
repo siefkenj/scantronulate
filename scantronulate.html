@@ -21,6 +21,7 @@
 	<script type="text/javascript" src="js/canvasPdf.js"></script>
 	<script type="text/javascript" src="js/interface.js"></script>
 	<script type="text/javascript" src="js/config.js"></script>
+	<script type="text/javascript" src="js/syncronizedWidget.js"></script>
 </head>
 <body>
 <div id="tabs">
@@ -52,13 +53,18 @@
 			Start from row: <input type="text" id="fromRow-importSettings" value='0' style="width: 2em"/>
 		</p>
 		<p>
-			Test Date: <input id='datepicker-importSettings' type='text' />
+			Test Date: <span class='sync-testDate' />
+<!--			<input id='datepicker-importSettings' type='text' /> -->
 		</p>
 		<p>
-			Class Number: <input id='classNumber-importSettings' type='text' /> (Leave blank to have the course read from input data)
+			Class Number: <span class='sync-courseNumber' />
+<!--			<input id='classNumber-importSettings' type='text' /> -->
+			(Leave blank to have the course read from input data)
 		</p>
 		<p>
-			<input id='encodeSection-importSettings' type='checkbox' value='encodeSection' checked="true" /> Encode Section in Name
+			<span class='sync-encodeSection' />
+<!--			<input id='encodeSection-importSettings' type='checkbox' value='encodeSection' checked="true" /> -->
+			Encode Section in Name
 		</p>
 	</div>
 	<div id="errorDialog" title="Error">
@@ -115,6 +121,15 @@
 	</p>
 </div>
 <div id="tab-settings">
+	<p>
+	Test Date: <span class='sync-testDate' />
+	</p>
+	<p>
+	Course Number: <span class='sync-courseNumber' />
+	</p>
+	<p>
+	Encode Section into Name Field: <span class='sync-encodeSection' />
+	</p>
 </div>
 <div id="tab-help">
 	<h3>Instructions</h3>
