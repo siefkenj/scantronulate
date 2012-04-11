@@ -32,6 +32,10 @@ SyncronizedWidget.prototype = {
         if (this.type === 'input') {
             this.type = this.type + '_' + $(content).attr('type').toLowerCase();
         }
+
+        // After we have manipulated the dom, call an elmChanged event so
+        // all data starts out syncronized
+        this.elmChanged({ currentTarget: content });
     },
 
     elmChanged: function(evt) {

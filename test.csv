@@ -1,16 +1,17 @@
- A01 ," Smith,  Jane", V00454004 
- A01 ," Ray,  Phil", V00529277 
- A01 ," Ron,  Dean", V00529277 
- A01 ," Goopda,  Mary", V00566678 
- A01 ," Humphrey,  Von  Roy", V00677384 
- A01 ," Wang,  Lam-Fo", V00617873 
- A01 ," Nana,  Foo", V00128252 
- A01 ,"Rand,  Apple", V00863796 
- A02 ," Banna,  Pie", V00490641 
- A02 ," Crispy,  Accent", V00398721 
- A02 ," Swift,  Lamb", V00253446 
- A02 ," Wooshy,  Beaver", V00755193 
- A02 ," Arnold,  Tom  E.", V00238701 
- A02 ,"Wince,  Bennot", V00890875 
- A02 ,"Grace,  Pan", V00862232 
- A02 ,"Foo,  Faa", V00502908 
+"COURSE_REF_NUMBER","TERM_CODE","SEAT_NUMBER","STUDENT_NUMBER","LAST_NAME","FIRST_NAME","MIDDLE_NAME","STUDENT_TYPE","COURSE_NAME","COURSE_NUMBER","SECTION"
+12345,12345,1," V00454004 ","Smith","Jane",,"NA","MATH",123," A01 "
+12345,12345,2," V00529277 ","Ray","Phil",,"NA","MATH",123," A01 "
+12345,12345,3," V00529277 ","Ron","Dean",,"NA","MATH",123," A01 "
+12345,12345,4," V00566678 ","Goopda","Mary",,"NA","MATH",123," A01 "
+12345,12345,5," V00677384 ","Humphrey","Von Roy",,"NA","MATH",123," A01 "
+12345,12345,6," V00617873 ","Wang","Lam-Fo",,"NA","MATH",123," A01 "
+12345,12345,7," V00128252 ","Nana","Foo",,"NA","MATH",123," A01 "
+12345,12345,8," V00863796 ","Rand","Apple",,"NA","MATH",123," A01 "
+12345,12345,9," V00490641 ","Banna","Pie",,"NA","MATH",123," A02 "
+12345,12345,10," V00398721 ","Crispy","Accent",,"NA","MATH",132," A02 "
+12345,12345,11," V00253446 ","Swift","Lamb",,"NA","MATH",333," A02 "
+12345,12345,12," V00755193 ","Wooshy","Beaver",,"NA","MATH",333," A02 "
+12345,12345,13," V00238701 ","Arnold","Tom E.",,"NA","MATH",333," A02 "
+12345,12345,14," V00890875 ","Wince","Bennot",,"NA","MATH",333," A02 "
+12345,12345,15," V00862232 ","Crace","Pan",,"NA","MATH",333," A02 "
+12345,12345,16," V00502908 ","Foo","Faa",,"NA","MATH",333," A02 "

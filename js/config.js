@@ -17,7 +17,7 @@ var SCANTRON_LAYOUTS = {
 	},
         //_defaultOrder: ['Student ID', 'Name', 'Course and Section'],
         //_defaultOrder: ['Course and Section', 'Name', 'Student ID'],
-        _defaultOrder: ['nouse', 'nouse', 'nouse', 'Student ID', 'Last Name', 'First Name', 'Middle Name', 'nouse', 'nouse', 'Course Number', 'Section', 'Last, First Name'],
+        _defaultOrder: ['nouse', 'nouse', 'nouse', 'Student ID', 'Last Name', 'First Name', 'nouse', 'nouse', 'nouse', 'Course Number', 'Section', 'Last, First Name', 'Middle Name'],
         'Name': {
             textExtents: [30,213,270,237],
             bubbleExtents: [30,237,270,560], 

@@ -5,11 +5,18 @@ scantronBackgroundImage.src = 'images/scantron-small.jpg';
 $(document).ready(function() {
     // Set up all the syncronized widgets so that the sae settings can be changed from multiple places
     settings['testDate'] = new SyncronizedWidget($('.sync-testDate'));
-    settings['testDate'].addContent("<input id='datepicker-importSettings' class='datepicker' type='text' />");
+    settings['testDate'].addContent("<input id='datepicker-importSettings' class='datepicker updates-preview' type='text' />");
     settings['courseNumber'] = new SyncronizedWidget($('.sync-courseNumber'));
-    settings['courseNumber'].addContent("<input id='classNumber-importSettings' type='text' />");
+    settings['courseNumber'].addContent("<input id='classNumber-importSettings' class='updates-preview' type='text' />");
     settings['encodeSection'] = new SyncronizedWidget($('.sync-encodeSection'));
-    settings['encodeSection'].addContent("<input id='encodeSection-importSettings' type='checkbox' value='encodeSection' checked='true' />");
+    settings['encodeSection'].addContent("<input id='encodeSection-importSettings' class='updates-preview' type='checkbox' value='encodeSection' checked='true' />");
+
+    // Mirror the help tab
+    $('#instructions').append($('#tab-help').children().clone());
+    // Set up all tablink links so that clicking them goes to the appropriate tab
+    $('.tablink').click(function(evt) {
+        $('#tabs').tabs('select', $(evt.currentTarget).attr('href'));
+    });
 
 
     // Set up the drag and drop
@@ -36,6 +43,9 @@ $(document).ready(function() {
             Ok: function() { $(this).dialog('close'); }
         }
     });
+
+    // Make sure that changes to the settings cause the preview to be rerendered
+    $('.updates-preview').change(function(){ studentList.refresh(); });
 
 });
 
@@ -168,7 +178,7 @@ function processUVicRow(data, encodeSectionNumber) {
     // Set 'Name'
     var name = 'NoLast, NoFirst', nameLast = 'NoLast', nameFirst='NoFirst';
     if (data['Last, First Name']) {
-        name = data['Name'];
+        name = data['Last, First Name'];
     }
     match = name.match(/(.*),(.*)/);
     if (match) {
@@ -270,7 +280,8 @@ StudentList.prototype = {
         var target = evt.currentTarget;
         // Handle the highlighting of a selected row
         if ($(target).hasClass('row_selected')) {
-            $(target).removeClass('row_selected');
+            // Actually, we don't want to be able to unselect a row...
+            // $(target).removeClass('row_selected');
         } else {
             $('#studentListTable .row_selected').removeClass('row_selected');
             $(target).addClass('row_selected');
@@ -284,7 +295,15 @@ StudentList.prototype = {
             data[item] = rowData[i];
         });
         
+        this.currentRowData = data;
         this.previewData(data);
+    },
+
+    // Refresh the display if there was a row selected
+    refresh: function() {
+        if (this.currentRowData) {
+            this.previewData(this.currentRowData);
+        }
     },
 
     previewData: function (data) {
@@ -342,6 +361,17 @@ ImportDialog.prototype = {
                 Import: this.importClick.bind(this)
             }
         });
+        
+        // Pretty spin button to adjust the starting row and make sure
+        // we don't enter negative numbers
+        $.spin.imageBasePath = 'images/spin/';
+        $('#fromRow-importSettings').spin({ min: 0, max:100 });
+        $('#fromRow-importSettings').change(function(evt) {
+            var input = $(evt.currentTarget);
+            if (!(input.val() >= 0)) {
+                input.val(0);
+            }
+        });
     },
 
     open: function() {
@@ -372,7 +402,7 @@ ImportDialog.prototype = {
         // and while we're at it, filter the nouse out of rowLabels
         var usedRowIndices = [];
         $(rowLabels).each(function(i, item) {
-            if (item !== 'nouse') {
+            if (item && item !== 'nouse') {
                 usedRowIndices.push(i);
             }
         });
@@ -456,6 +486,7 @@ ImportDialog.prototype = {
         }
 
         var tableHead = $('#table-importSettings thead tr').empty();
+        tableHead.append('<th>Row</th>');
         for (i=0; i < numCols; i++) {
             var selectUse = select.clone();
             selectUse.addClass('col-'+i);
@@ -472,15 +503,16 @@ ImportDialog.prototype = {
         // Create the table entries
         var entries = "", row = "";
         for (j=0; j < Math.min(this.data.length, 4); j++) {
-            var row = "";
+            // Make sure the first entry in the table is the row
+            var row = "<td class='rowIndicator'>"+j+"</td>";
             for (i=0; i < numCols; i++) {
-                row += "<td>" + this.data[j][i] + "</td>";
+                row += "<td class='rowData'>" + this.data[j][i] + "</td>";
             }
             entries += "<tr>" + row + "</tr>";
         }
         row = "";
         for (i=0; i < numCols; i++) {
-            row += "<td>...</td>";
+            row += "<td class='rowElipses'>...</td>";
         }
         entries += row;
         $("#table-importSettings tbody").empty().append($(entries));
