@@ -1,4 +1,4 @@
-#graphSettings {
+#studentList {
 	float: left;
 	width: 50%;
 	height: 100%;
@@ -71,7 +71,3 @@
 * html .clearfix { height: 1%; }
 .clearfix { display: block; }
 /* close commented backslash hack */
-
-textarea {
-	font-family: monospace !important;
-}
