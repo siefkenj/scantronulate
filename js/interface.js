@@ -47,6 +47,50 @@ $(document).ready(function() {
     // Make sure that changes to the settings cause the preview to be rerendered
     $('.updates-preview').change(function(){ studentList.refresh(); });
 
+    // TODO: have this be configurable and not just read from the default!
+    var scantronConfig = SCANTRON_LAYOUTS[DEFAULT_SCANTRON_LAYOUT];
+    // Set up the printer types based on the scantronConfig's listed printers
+    $('#outputPrinter').html('');
+    $(Object.keys(scantronConfig['_printerOffsets'])).each(function(i, item) {
+        $('#outputPrinter').append('<option value="'+item+'">'+item+'</option>');
+    });
+    $('#outputPrinter').append('<option value="none">Unspecified Printer</option>');
+    $('#outputPrinter').change(function() {
+        var scantronLayout = SCANTRON_LAYOUTS[DEFAULT_SCANTRON_LAYOUT];
+        // get the printer offset from the option box
+        var printerOption = $('#outputPrinter option:selected').val();
+        var printerOffsets;
+        try {
+            printerOffsets = SCANTRON_LAYOUTS[DEFAULT_SCANTRON_LAYOUT]['_printerOffsets'][printerOption];
+        } catch(e) {}
+        // if there was nothing in the settings, then do nothing
+        if (!printerOffsets) {
+            return;
+        }
+
+        $('#offsetX').val(printerOffsets[0]);
+        $('#offsetY').val(printerOffsets[1]);
+    });
+    $('#outputPrinter').change();
+    $('#offsetX, #offsetY').change(function (){
+        $('#outputPrinter').val('none');
+        var x = parseFloat($('#offsetX').val());
+        var y = parseFloat($('#offsetY').val())
+        $('#offsetX').val(isNaN(x) ? 0 : x);
+        $('#offsetY').val(isNaN(y) ? 0 : y);
+    });
+
+
+    // set up the 'import sample data' button
+    $('#importSampleData').click(function (){
+        $.ajax({
+            url: 'test.csv'
+        }).done(function (data) {
+            var parsed = CSVToArray(data);
+            importDialog.update(parsed);
+            importDialog.open();          
+        });
+    });
 });
 
 function makePdf() {
@@ -55,6 +99,9 @@ function makePdf() {
     // TODO: make this read from settings
     var scantronLayout = SCANTRON_LAYOUTS[DEFAULT_SCANTRON_LAYOUT];
     // get the printer offset from the option box
+    var printerOffsets = [parseFloat($('#offsetX').val()), parseFloat($('#offsetY').val())];
+    
+    /*
     var printerOption = $('#outputPrinter option:selected').val();
     var printerOffsets;
     try {
@@ -63,6 +110,7 @@ function makePdf() {
     if (!printerOffsets) {
         printerOffsets = [0, 0];
     }
+    */
 
     var columns = studentList.columns;
     
@@ -433,12 +481,6 @@ ImportDialog.prototype = {
         studentList.studentList.fnDraw();
         studentList.studentListClick({currentTarget: studentList.studentList.find('tbody tr')[0]});
 
-        // Set up the printer types based on the scantronConfig's listed printers
-        $('#outputPrinter').html('');
-        $(Object.keys(scantronConfig['_printerOffsets'])).each(function(i, item) {
-            $('#outputPrinter').append('<option value="'+item+'">'+item+'</option>');
-        });
-        $('#outputPrinter').append('<option value="none">Unspecified Printer</option>');
     },
 
     rowFromChange: function() {
