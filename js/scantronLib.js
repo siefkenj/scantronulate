@@ -14,6 +14,12 @@
 function applyTranslationTable(string, table) {
     var ret = [];
     var i;
+    // first try translating directly.  If that doesn't work, translate
+    // character by character
+    if (table[string] != null) {
+        return [table[string]];
+    }
+
     for(i = 0; i < string.length; i++) {
         ret.push(table[string.charAt(i)]);
     }
