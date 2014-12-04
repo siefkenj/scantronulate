@@ -45,6 +45,11 @@ SyncronizedWidget.prototype = {
         if (this.type === 'input_checkbox') {
             // make sure this.value is a boolean value
             this.value = !!$(evt.currentTarget).prop('checked');
+            // XXX if the input is a string .prop doesn't work for some reason....
+            if (typeof evt.currentTarget === 'string') {
+                var val = evt.currentTarget.match(/checked\s*=\s*['"]?[tT][rR][uU][eU]/) ? true : false;
+                this.value = val;
+            }
         }
         if (this.type === 'select') {
             this.value = $(evt.currentTarget).find('option:selected').val();

@@ -10,6 +10,8 @@ $(document).ready(function() {
     settings['courseNumber'].addContent("<input id='classNumber-importSettings' class='updates-preview' type='text' />");
     settings['encodeSection'] = new SyncronizedWidget($('.sync-encodeSection'));
     settings['encodeSection'].addContent("<input id='encodeSection-importSettings' class='updates-preview' type='checkbox' value='encodeSection' checked='true' />");
+    settings['drawOutlines'] = new SyncronizedWidget($('.sync-drawOutlines'));
+    settings['drawOutlines'].addContent("<input id='drawOutlines-importSettings' class='updates-preview' type='checkbox' value='drawOutlines' checked='false' />");
 
     // Mirror the help tab
     $('#instructions').append($('#tab-help').children().clone());
@@ -45,7 +47,11 @@ $(document).ready(function() {
     });
 
     // Make sure that changes to the settings cause the preview to be rerendered
-    $('.updates-preview').change(function(){ studentList.refresh(); });
+    $('.updates-preview').change(function(){ 
+        if (studentList) {
+            studentList.refresh(); 
+        }
+    });
 
     // TODO: have this be configurable and not just read from the default!
     var scantronConfig = SCANTRON_LAYOUTS[DEFAULT_SCANTRON_LAYOUT];
@@ -160,12 +166,12 @@ function makePdf() {
         // When doc is created, it already has a blank page, so we don't need to create one
         // for index 0
         if (start === 0) {
-            st.fillPdf(formattedStudentData[0], doc);
+            st.fillPdf(formattedStudentData[0], doc, settings['drawOutlines'].value);
             start++;
         }
         for (i = start; i < formattedStudentData.length && i < start + numChunksToAdd; i++) {
             doc.addPage();
-            st.fillPdf(formattedStudentData[i], doc);
+            st.fillPdf(formattedStudentData[i], doc, settings['drawOutlines'].value);
         }
         $('#exportProgress').progressbar({ value: i/formattedStudentData.length*100 });
         if (i === formattedStudentData.length) {
@@ -376,7 +382,7 @@ StudentList.prototype = {
             // Render the row to the preview area
             var canvasPdf = new CanvasPdf(ctx);
             var st = new Scantron(this.scantronLayout);
-            st.fillPdf(processUVicRow(data, $('#encodeSection-importSettings').prop('checked')), canvasPdf);
+            st.fillPdf(processUVicRow(data, $('#encodeSection-importSettings').prop('checked')), canvasPdf, settings['drawOutlines'].value);
 
             ctx.restore();
         }
